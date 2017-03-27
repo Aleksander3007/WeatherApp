@@ -1,16 +1,14 @@
 package com.ermakov.weatherapp;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
 import com.ermakov.weatherapp.models.weather.Weather;
-import com.ermakov.weatherapp.net.WeatherApiFactory;
-import com.ermakov.weatherapp.net.WeatherApi;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -21,29 +19,27 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        try {
-            WeatherApi weatherApi = WeatherApiFactory.createWeatherApiService();
-            weatherApi.getWeatherByCityName("London").enqueue(new Callback<Weather>() {
-                @Override
-                public void onResponse(Call<Weather> call, Response<Weather> response) {
-                    if (response.isSuccessful()) {
-                        Log.d(TAG, response.body().toString());
+
+        BroadcastReceiver weatherReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.getExtras() != null) {
+                    boolean success = intent.getBooleanExtra(WeatherUpdateService.EXTRA_SUCCESS, false);
+                    if (success) {
+                        Weather weather = intent.getParcelableExtra(WeatherUpdateService.EXTRA_WEATHER);
+                        Log.d(TAG, weather.toString());
                     }
                     else {
-                        Log.d(TAG, "Error code: " + response.code());
+                        int httpCode = intent.getExtras().getInt(WeatherUpdateService.EXTRA_HTTP_CODE);
+                        Log.d(TAG, "Error code: " + httpCode);
                     }
                 }
+            }
+        };
 
-                @Override
-                public void onFailure(Call<Weather> call, Throwable t) {
-                    Log.d(TAG, "onFailure()");
-                    t.printStackTrace();
-                }
-            });
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        IntentFilter intentFilter = new IntentFilter(WeatherUpdateService.ACTION_GET_WEATHER_DATA);
+        registerReceiver(weatherReceiver, intentFilter);
 
+        startService(new Intent(this, WeatherUpdateService.class));
     }
 }
