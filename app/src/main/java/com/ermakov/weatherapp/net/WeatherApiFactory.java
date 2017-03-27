@@ -57,8 +57,8 @@ public abstract class WeatherApiFactory {
         });
     }
 
-    public static WeatherApiService createWeatherApiService() {
-        return createRetrofit().create(WeatherApiService.class);
+    public static WeatherApi createWeatherApiService() {
+        return createRetrofit().create(WeatherApi.class);
     }
 
     private static Retrofit createRetrofit() {

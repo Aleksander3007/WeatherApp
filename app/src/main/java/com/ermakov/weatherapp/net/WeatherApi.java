@@ -9,7 +9,7 @@ import retrofit2.http.Query;
 /**
  * Интерфейс, объявляющий методы для работы с OpenWeatherMap API.
  */
-public interface WeatherApiService {
+public interface WeatherApi {
 
     /**
      * Получить информацию о погоде по имени города.

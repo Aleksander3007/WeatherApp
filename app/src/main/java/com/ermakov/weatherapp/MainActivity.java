@@ -6,7 +6,7 @@ import android.util.Log;
 
 import com.ermakov.weatherapp.models.weather.Weather;
 import com.ermakov.weatherapp.net.WeatherApiFactory;
-import com.ermakov.weatherapp.net.WeatherApiService;
+import com.ermakov.weatherapp.net.WeatherApi;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -22,8 +22,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         try {
-            WeatherApiService weatherApiService = WeatherApiFactory.createWeatherApiService();
-            weatherApiService.getWeatherByCityName("London").enqueue(new Callback<Weather>() {
+            WeatherApi weatherApi = WeatherApiFactory.createWeatherApiService();
+            weatherApi.getWeatherByCityName("London").enqueue(new Callback<Weather>() {
                 @Override
                 public void onResponse(Call<Weather> call, Response<Weather> response) {
                     if (response.isSuccessful()) {
