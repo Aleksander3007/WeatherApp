@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">WeatherApp</string>
+    <string name="sunrise">Sunrise</string>
+    <string name="sunset">Sunset</string>
 </resources>
