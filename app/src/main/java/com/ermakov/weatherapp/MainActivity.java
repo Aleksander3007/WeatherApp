@@ -6,14 +6,18 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.widget.TextView;
 
+import com.ermakov.weatherapp.activities.SettingsActivity;
 import com.ermakov.weatherapp.models.weather.Weather;
 import com.ermakov.weatherapp.models.weather.Wind;
 
 import java.util.List;
-import java.util.TimerTask;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -28,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.tv_sunset) TextView mSunsetTextView;
     @BindView(R.id.tv_temperature) TextView mTemperatureTextView;
     @BindView(R.id.tv_wind) TextView mWindTextView;
+    @BindView(R.id.toolbar_main) Toolbar mMainToolbar;
 
     private BroadcastReceiver mWeatherReceiver;
 
@@ -36,6 +41,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+
+        setSupportActionBar(mMainToolbar);
+        if (getSupportActionBar() != null) {
+            // TODO: Заглушка title of ToolBar.
+            getSupportActionBar().setTitle("Current location");
+        }
 
         startService(new Intent(this, WeatherUpdateService.class));
     }
@@ -50,6 +61,35 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         unregisterReceiver(mWeatherReceiver);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        try {
+            switch (item.getItemId()) {
+                case R.id.mi_settings:
+                    openSettingsActivity();
+                    return true;
+                default:
+                    return super.onOptionsItemSelected(item);
+            }
+        }
+        catch (Exception ex) {
+            ex.printStackTrace();
+            return super.onOptionsItemSelected(item);
+        }
+
+    }
+
+    private void openSettingsActivity() {
+        Intent settingsIntent = new Intent(this, SettingsActivity.class);
+        startActivity(settingsIntent);
     }
 
     /**

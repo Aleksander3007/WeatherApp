@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="temperature_units">
+        <item>\u2103</item>
+        <item>\u2109</item>
+    </string-array>
+    <string-array name="temperature_units_alias">
+        <item>celsius</item>
+        <item>kelvin</item>
+    </string-array>
+</resources>
