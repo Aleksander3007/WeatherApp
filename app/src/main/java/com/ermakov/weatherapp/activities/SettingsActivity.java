@@ -15,6 +15,11 @@ import com.ermakov.weatherapp.R;
  * Общие настройки приложения.
  */
 public class SettingsActivity extends AppCompatActivity {
+
+    public static final String PREF_TEMPERATURE_UNITS = "pref_temperature_units";
+    public static final String NAME_CELSIUS = "celsius";
+    public static final String NAME_KELVIN = "kelvin";
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

@@ -10,6 +10,25 @@ import com.google.gson.annotations.SerializedName;
  */
 public class Wind implements Parcelable {
 
+    public enum Direction {
+        N, // north
+        NNE, // north-north-east
+        NE, // north-east
+        ENE, // east-north-east
+        E, // east
+        ESE, // east-south-east
+        SE, // south-east
+        SSE, // south-south-east
+        S, // south
+        SSW, // south-south-west
+        SW, // south-west
+        WSW, // west-south-west
+        W, // west
+        WNW, // west-north-west
+        NW, // north-west
+        NNW // north-north-west
+    }
+
     /**
      * Wind speed. Unit Default: meter/sec, Metric: meter/sec, Imperial: miles/hour.
      */
@@ -79,5 +98,39 @@ public class Wind implements Parcelable {
         else {
             return false;
         }
+    }
+
+    /**
+     * Конвертировать угол ветра в направление.
+     * @return направление ветра.
+     */
+    public Wind.Direction getDirection() {
+
+        final float halfSegment = (90f / 8f);
+
+        // Северное направление - особый сегмент.
+        // Для северного направления получается что половина лежит после 0,
+        // а другая половина до 360.
+        if ((mDirectionDegrees >= 0 && mDirectionDegrees <= halfSegment) ||
+                (mDirectionDegrees > 360 - halfSegment && mDirectionDegrees <= 360)) {
+            return Direction.N;
+        }
+
+        int iSegment = 1;
+        for (Direction direction : Direction.values()) {
+
+            if (direction == Direction.N) continue;
+
+            if (mDirectionDegrees > iSegment * halfSegment &&
+                    mDirectionDegrees <= (iSegment + 2) * halfSegment) {
+                return direction;
+            }
+
+            iSegment += 2;
+        }
+
+        // Сюда он не должен дойти, т.к. мы проверяем полный круг 360 градусов,
+        // других значений просто быть не может.
+        return null;
     }
 }

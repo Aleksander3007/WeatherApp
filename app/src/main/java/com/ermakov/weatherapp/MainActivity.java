@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
@@ -16,8 +18,12 @@ import android.widget.TextView;
 import com.ermakov.weatherapp.activities.SettingsActivity;
 import com.ermakov.weatherapp.models.weather.Weather;
 import com.ermakov.weatherapp.models.weather.Wind;
+import com.ermakov.weatherapp.utils.WeatherUtils;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -130,16 +136,73 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String getWindStr(Wind wind) {
-        return String.format("Wind %.0f m/s from %d", wind.getSpeed(), wind.getDirectionDegrees());
+        String directionStr = convertDirectionToString(wind.getDirection());
+        return String.format("Wind %.0f m/s from %s", wind.getSpeed(), directionStr);
+    }
+
+    private String convertDirectionToString(Wind.Direction direction) {
+        switch (direction) {
+            case N:
+                return getResources().getString(R.string.north);
+            case NNE:
+                return getResources().getString(R.string.north_north_east);
+            case NE:
+                return getResources().getString(R.string.north_east);
+            case ENE:
+                return getResources().getString(R.string.east_north_east);
+            case E:
+                return getResources().getString(R.string.east);
+            case ESE:
+                return getResources().getString(R.string.east_south_east);
+            case SE:
+                return getResources().getString(R.string.south_east);
+            case SSE:
+                return getResources().getString(R.string.south_south_east);
+            case S:
+                return getResources().getString(R.string.south);
+            case SSW:
+                return getResources().getString(R.string.south_south_west);
+            case SW:
+                return getResources().getString(R.string.south_west);
+            case WSW:
+                return getResources().getString(R.string.west_south_west);
+            case W:
+                return getResources().getString(R.string.west);
+            case WNW:
+                return getResources().getString(R.string.west_north_west);
+            case NW:
+                return getResources().getString(R.string.north_west);
+            case NNW:
+                return getResources().getString(R.string.north_north_west);
+            default:
+                return "";
+        }
     }
 
     private void updateSunInfo(Weather.Sun sun) {
-        mSunriseTextView.setText(String.valueOf(sun.getSunrise()));
-        mSunsetTextView.setText(String.valueOf(sun.getSunset()));
+        Date sunriseTime = WeatherUtils.convertToDate(sun.getSunrise());
+        Date sunsetTime = WeatherUtils.convertToDate(sun.getSunset());
+        mSunriseTextView.setText(getSunPositionStr(sunriseTime));
+        mSunsetTextView.setText(getSunPositionStr(sunsetTime));
+    }
+
+    private String getSunPositionStr(Date date) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm");
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT+0"));
+        String formattedDate = simpleDateFormat.format(date);
+        return formattedDate;
     }
 
     private void updateDateTime(int dataCalculation) {
-        mDateTimeTextView.setText(String.valueOf(dataCalculation));
+        Date cityDate = WeatherUtils.convertToDate(dataCalculation);
+        mDateTimeTextView.setText(getDateTimeStr(cityDate));
+    }
+
+    private String getDateTimeStr(Date date) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT+0"));
+        String formattedDate = simpleDateFormat.format(date);
+        return formattedDate;
     }
 
     private void updateWeatherDescription(List<Weather.Description> descriptions) {
@@ -153,10 +216,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateTemperature(float temperature) {
-        mTemperatureTextView.setText(getTemperatureStr(temperature));
+        String temperatureUnit = PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(SettingsActivity.PREF_TEMPERATURE_UNITS, "");
+
+        mTemperatureTextView.setText(getTemperatureStr(temperature, temperatureUnit));
     }
 
-    private String getTemperatureStr(float temperature) {
-        return String.format("%.0f", temperature);
+    private String getTemperatureStr(float temperature, String temperatureUnit) {
+
+        String unitStr;
+        if (temperatureUnit.equals(SettingsActivity.NAME_CELSIUS)) {
+            temperature = WeatherUtils.convertToCelsius(temperature);
+            unitStr = getResources().getString(R.string.celsius);
+        }
+        else {
+            unitStr = getResources().getString(R.string.kelvin);
+        }
+
+        return String.format("%.0f %s", temperature, unitStr);
     }
 }
