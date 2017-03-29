@@ -1,10 +1,13 @@
 package com.ermakov.weatherapp;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.support.design.widget.AppBarLayout;
 import android.support.v7.app.AppCompatActivity;
@@ -35,6 +38,11 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String TAG = MainActivity.class.getSimpleName();
 
+    private static final String KEY_WEATHER_UPDATE = "KEY_WEATHER_UPDATE";
+
+    // OpenWeatherMap.org просит не обновлять погоду чаще, чем раз в 10 минут.
+    public static final int INTERVAL_WEATHER_UPDATE = 10 * 60 * 1000; // в мс.
+
     @BindView(R.id.tv_date_time) TextView mDateTimeTextView;
     @BindView(R.id.tv_description) TextView mDescriptionTextView;
     @BindView(R.id.tv_sunrise) TextView mSunriseTextView;
@@ -46,6 +54,11 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.l_weather_info) View mWeatherInfoLayout;
 
     private BroadcastReceiver mWeatherReceiver;
+    private AlarmManager mWeatherUpdateAlarmManager;
+    private PendingIntent mWeatherUpdatePendingIntent;
+
+    /** Время последнего обновления инфо о погоде, мс. */
+    private long mLastWeatherUpdate = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,8 +83,6 @@ public class MainActivity extends AppCompatActivity {
             public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
 
                 float currentAlpha = 1.0f - (float)(-verticalOffset) / mWeatherInfoLayout.getHeight();
-                Log.d(TAG, String.valueOf(currentAlpha));
-
                 if (currentAlpha > 1.0f) currentAlpha = 1.0f;
                 if (currentAlpha < 0.0f) currentAlpha = 0.0f;
 
@@ -79,19 +90,37 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Стартуем сразу сервис для получения информации о погоде.
         startService(new Intent(this, WeatherUpdateService.class));
+        mLastWeatherUpdate = SystemClock.elapsedRealtime();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+        Log.d(TAG, "current time " + String.valueOf(SystemClock.elapsedRealtime()));
         registerWeatherUpdateReceiver();
+        startWeatherUpdateAlarm();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        cancelWeatherUpdateAlarm();
         unregisterReceiver(mWeatherReceiver);
+
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putLong(KEY_WEATHER_UPDATE, mLastWeatherUpdate);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        mLastWeatherUpdate = savedInstanceState.getLong(KEY_WEATHER_UPDATE);
     }
 
     @Override
@@ -118,6 +147,32 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * Запуск будильника обновления данных о погоде через определенные интервалы.
+     */
+    private void startWeatherUpdateAlarm() {
+        Intent weatherUpdateIntent = new Intent(this, WeatherUpdateService.class);
+        mWeatherUpdatePendingIntent
+                = PendingIntent.getService(this, 0, weatherUpdateIntent, 0);
+        mWeatherUpdateAlarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        // Стартуем через INTERVAL_WEATHER_UPDATE от последнего обновления.
+        long firstRunInterval = INTERVAL_WEATHER_UPDATE - (SystemClock.elapsedRealtime() - mLastWeatherUpdate);
+        Log.d(TAG, "update in " + String.valueOf(firstRunInterval));
+        mWeatherUpdateAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
+                SystemClock.elapsedRealtime() + firstRunInterval,
+                INTERVAL_WEATHER_UPDATE,
+                mWeatherUpdatePendingIntent);
+    }
+
+    /**
+     * Отмена будильника данных о погоде.
+     */
+    private void cancelWeatherUpdateAlarm() {
+        if (mWeatherUpdateAlarmManager != null) {
+            mWeatherUpdateAlarmManager.cancel(mWeatherUpdatePendingIntent);
+        }
+    }
+
     private void openSettingsActivity() {
         Intent settingsIntent = new Intent(this, SettingsActivity.class);
         startActivity(settingsIntent);
@@ -135,6 +190,7 @@ public class MainActivity extends AppCompatActivity {
                     if (success) {
                         Weather weather = intent.getParcelableExtra(WeatherUpdateService.EXTRA_WEATHER);
                         updateView(weather);
+                        Log.d(TAG, "Update Weather");
                     }
                     else {
                         int httpCode = intent.getExtras().getInt(WeatherUpdateService.EXTRA_HTTP_CODE);
