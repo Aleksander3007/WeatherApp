@@ -6,6 +6,9 @@
     <string name="temperature">Temperature</string>
     <string name="celsius">\u2103</string>
     <string name="kelvin">\u2109</string>
+    <string name="wind_speed">Wind Speed</string>
+    <string name="meters_per_second">m/s</string>
+    <string name="kilometers_per_hour">km/h</string>
     <string name="north">N</string>
     <string name="north_north_east">NNE</string>
     <string name="north_east">NE</string>
@@ -22,4 +25,7 @@
     <string name="west_north_west">WNW</string>
     <string name="north_west">NW</string>
     <string name="north_north_west">NNW</string>
+
+    <string name="pref_default_temperature">celsius</string>
+    <string name="pref_default_wind_speed">m/s</string>
 </resources>

@@ -59,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
             getSupportActionBar().setTitle("Current location");
         }
 
+        // Установка всех настроек приложение в default-значения во время первого запуска приложения.
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+
         /**
          * Добавляем анимацию для AppBarLayout.
          */
@@ -76,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        //startService(new Intent(this, WeatherUpdateService.class));
+        startService(new Intent(this, WeatherUpdateService.class));
     }
 
     @Override
@@ -153,13 +156,31 @@ public class MainActivity extends AppCompatActivity {
         updateWindInfo(weather.getWind());
     }
 
+    /**
+     * Обновление информации о ветре.
+     * @param wind объект ветер.
+     */
     private void updateWindInfo(Wind wind) {
-        mWindTextView.setText(getWindStr(wind));
+        String windSpeedUnit = PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(SettingsActivity.PREF_WIND_SPEED_UNITS, "");
+        mWindTextView.setText(getWindStr(wind, windSpeedUnit));
     }
 
-    private String getWindStr(Wind wind) {
+    private String getWindStr(Wind wind, String windSpeedUnit) {
+
+        float windSpeed = wind.getSpeed();
+
+        String unitStr;
+        if (windSpeedUnit.equals(SettingsActivity.NAME_KILOMETERS_PER_HOUR)) {
+            windSpeed = WeatherUtils.convertToKmPerHour(windSpeed);
+            unitStr = getResources().getString(R.string.kilometers_per_hour);
+        }
+        else {
+            unitStr = getResources().getString(R.string.meters_per_second);
+        }
+
         String directionStr = convertDirectionToString(wind.getDirection());
-        return String.format("Wind %.0f m/s from %s", wind.getSpeed(), directionStr);
+        return String.format("Wind %.0f %s from %s", windSpeed, unitStr, directionStr);
     }
 
     private String convertDirectionToString(Wind.Direction direction) {

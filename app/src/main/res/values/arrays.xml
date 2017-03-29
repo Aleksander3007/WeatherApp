@@ -8,4 +8,9 @@
         <item>celsius</item>
         <item>kelvin</item>
     </string-array>
+
+    <string-array name="wind_speed_units">
+        <item>m/s</item>
+        <item>km/h</item>
+    </string-array>
 </resources>

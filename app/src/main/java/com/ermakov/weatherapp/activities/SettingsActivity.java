@@ -17,8 +17,14 @@ import com.ermakov.weatherapp.R;
 public class SettingsActivity extends AppCompatActivity {
 
     public static final String PREF_TEMPERATURE_UNITS = "pref_temperature_units";
+    public static final String PREF_WIND_SPEED_UNITS = "pref_wind_speed_units";
+    public static final String PREF_FIRST_RUN = "pref_first_run";
+
     public static final String NAME_CELSIUS = "celsius";
     public static final String NAME_KELVIN = "kelvin";
+
+    public static final String NAME_METERS_PER_SECOND = "m/s";
+    public static final String NAME_KILOMETERS_PER_HOUR = "km/h";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -37,8 +43,11 @@ public class SettingsActivity extends AppCompatActivity {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.preferences);
 
-            ListPreference temperaturePreference = (ListPreference) findPreference("pref_temperature_units");
+            ListPreference temperaturePreference = (ListPreference) findPreference(PREF_TEMPERATURE_UNITS);
             temperaturePreference.setSummary(temperaturePreference.getEntry());
+
+            ListPreference windSpeedPreference = (ListPreference) findPreference(PREF_WIND_SPEED_UNITS);
+            windSpeedPreference.setSummary(windSpeedPreference.getEntry());
         }
 
         @Override

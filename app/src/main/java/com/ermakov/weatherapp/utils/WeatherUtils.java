@@ -27,4 +27,14 @@ public class WeatherUtils {
         Date date = new Date(unixTimeStamp * 1000L);
         return date;
     }
+
+    /**
+     * Конвертировать из м/с в км/ч.
+     * @param meterPerSecond величина в м/с.
+     * @return величина в км/ч.
+     */
+    public static float convertToKmPerHour(float meterPerSecond) {
+        // k м/с = k * 3600 / 1000 км/ч.
+        return meterPerSecond * 3.6f;
+    }
 }
