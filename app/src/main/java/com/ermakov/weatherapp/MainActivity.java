@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import android.support.design.widget.AppBarLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
@@ -13,6 +14,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.ermakov.weatherapp.activities.SettingsActivity;
@@ -39,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.tv_temperature) TextView mTemperatureTextView;
     @BindView(R.id.tv_wind) TextView mWindTextView;
     @BindView(R.id.toolbar_main) Toolbar mMainToolbar;
+    @BindView(R.id.abl_main) AppBarLayout mMainAppBarLayout;
+    @BindView(R.id.l_weather_info) View mWeatherInfoLayout;
 
     private BroadcastReceiver mWeatherReceiver;
 
@@ -54,7 +59,24 @@ public class MainActivity extends AppCompatActivity {
             getSupportActionBar().setTitle("Current location");
         }
 
-        startService(new Intent(this, WeatherUpdateService.class));
+        /**
+         * Добавляем анимацию для AppBarLayout.
+         */
+        mMainAppBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
+            @Override
+            public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
+
+                float currentAlpha = 1.0f - (float)(-verticalOffset) / mWeatherInfoLayout.getHeight();
+                Log.d(TAG, String.valueOf(currentAlpha));
+
+                if (currentAlpha > 1.0f) currentAlpha = 1.0f;
+                if (currentAlpha < 0.0f) currentAlpha = 0.0f;
+
+                mWeatherInfoLayout.setAlpha(currentAlpha);
+            }
+        });
+
+        //startService(new Intent(this, WeatherUpdateService.class));
     }
 
     @Override

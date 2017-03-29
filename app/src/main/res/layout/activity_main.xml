@@ -5,23 +5,26 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <android.support.design.widget.AppBarLayout
+        android:id="@+id/abl_main"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/colorAccent"
         android:fitsSystemWindows="true">
 
         <android.support.design.widget.CollapsingToolbarLayout
-            android:id="@+id/main.collapsing"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:layout_scrollFlags="scroll|enterAlways"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed"
             app:contentScrim="?attr/colorPrimary"
-            android:fitsSystemWindows="true">
+            android:fitsSystemWindows="true"
+            app:titleEnabled="false">
 
             <android.support.v7.widget.Toolbar
                 android:id="@+id/toolbar_main"
                 android:layout_width="match_parent"
                 android:layout_height="?android:actionBarSize"
+                android:gravity="center"
+                app:layout_collapseMode="pin"
                 />
 
             <include
@@ -29,6 +32,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="?android:actionBarSize"
+                app:layout_collapseMode="none"
                 />
 
         </android.support.design.widget.CollapsingToolbarLayout>
