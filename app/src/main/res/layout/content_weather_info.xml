@@ -11,7 +11,7 @@
 
     <TextView
         android:id="@+id/tv_date_time"
-        android:text="Mo, March, 27, Time"
+        android:text="@string/empty_data"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textAlignment="center"/>
@@ -31,7 +31,7 @@
 
             <TextView
                 android:id="@+id/tv_sunrise"
-                android:text="06:30"
+                android:text="@string/empty_data"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"/>
 
@@ -52,7 +52,7 @@
 
             <TextView
                 android:id="@+id/tv_sunset"
-                android:text="17:30"
+                android:text="@string/empty_data"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"/>
 
@@ -67,7 +67,7 @@
 
     <TextView
         android:id="@+id/tv_temperature"
-        android:text="12'C"
+        android:text="@string/empty_data"
         android:textAlignment="center"
         android:textSize="36sp"
         android:layout_width="match_parent"
@@ -76,14 +76,14 @@
 
     <TextView
         android:id="@+id/tv_description"
-        android:text="Mainly cloudly, light snow"
+        android:text="@string/empty_data"
         android:textAlignment="center"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 
     <TextView
         android:id="@+id/tv_wind"
-        android:text="Wind 4 m/s from N"
+        android:text="@string/empty_data"
         android:textAlignment="center"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>

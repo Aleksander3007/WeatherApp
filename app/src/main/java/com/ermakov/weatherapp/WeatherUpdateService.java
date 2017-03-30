@@ -37,6 +37,10 @@ public class WeatherUpdateService extends IntentService
     public static final String EXTRA_WEATHER = "EXTRA_WEATHER";
     public static final String EXTRA_SUCCESS = "EXTRA_SUCCESS";
     public static final String EXTRA_HTTP_CODE = "EXTRA_HTTP_CODE";
+    public static final String EXTRA_EXCEPTION = "EXTRA_EXCEPTION";
+
+    public static final int EXCEPTION_REQUEST_SERVER = 1;
+    public static final int EXCEPTION_SECURITY = 2;
 
     /** Время ожидания получения геопозиции. */
     private static final int TIMEOUT_LOCATION_REQUEST = 60 * 1000;
@@ -104,16 +108,13 @@ public class WeatherUpdateService extends IntentService
             //    requestWeather((int)latitude, (int)longitude);
             //}
             //else {
-            //    // TODO: Что делать? Пытаться получить еще раз или получать другим способом
+            //
             //    Log.d(TAG, "mLastLocation == null");
             //}
         }
         catch (SecurityException sex) {
+            sendSecurityException();
             sex.printStackTrace();
-            // TODO:  Необходимо оповестить, что нет полномочий на получение геопозиции, чтобы приложение запросило их.
-            /* if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-            && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-             */
         }
     }
 
@@ -140,23 +141,66 @@ public class WeatherUpdateService extends IntentService
     private void requestWeather(double latitude, double longitude) {
         WeatherApi weatherApi = WeatherApiFactory.createWeatherApiService();
         weatherApi.getWeatherByGeoCoordinates(latitude, longitude).enqueue(new Callback<Weather>() {
-            @Override
-            public void onResponse(Call<Weather> call, Response<Weather> response) {
-                Intent responseIntent = new Intent(ACTION_GET_WEATHER_DATA);
-                responseIntent.putExtra(WeatherUpdateService.EXTRA_SUCCESS, response.isSuccessful());
-                responseIntent.putExtra(WeatherUpdateService.EXTRA_WEATHER, response.code());
-                if (response.isSuccessful()) {
-                    Log.d(TAG, response.body().toString());
-                    responseIntent.putExtra(WeatherUpdateService.EXTRA_WEATHER, (Parcelable) response.body());
-                }
-                sendBroadcast(responseIntent);
-            }
+                    @Override
+                    public void onResponse(Call<Weather> call, Response<Weather> response) {
+                        if (response.isSuccessful()) {
+                            sendWeather(response.body());
+                        }
+                        else {
+                            sendError(response.code());
+                        }
+                    }
 
-            @Override
-            public void onFailure(Call<Weather> call, Throwable t) {
-                Log.d(TAG, "onFailure()");
-                t.printStackTrace();
-            }
-        });
+                    @Override
+                    public void onFailure(Call<Weather> call, Throwable t) {
+                        sendRequestWeatherException();
+                        t.printStackTrace();
+                    }
+                });
+    }
+
+    /**
+     * Отправляем информацию о погоде.
+     * @param weather инфо о погоде.
+     */
+    private void sendWeather(Weather weather) {
+
+        Log.d(TAG, weather.toString());
+
+        Intent responseIntent = new Intent(ACTION_GET_WEATHER_DATA);
+        responseIntent.putExtra(WeatherUpdateService.EXTRA_SUCCESS, true);
+        responseIntent.putExtra(WeatherUpdateService.EXTRA_WEATHER, weather);
+        sendBroadcast(responseIntent);
+    }
+
+    /**
+     * Отправить информацию об ошики.
+     * @param httpErrorCode код ошибки.
+     */
+    private void sendError(int httpErrorCode) {
+        Intent responseIntent = new Intent(ACTION_GET_WEATHER_DATA);
+        responseIntent.putExtra(WeatherUpdateService.EXTRA_SUCCESS, false);
+        responseIntent.putExtra(WeatherUpdateService.EXTRA_HTTP_CODE, httpErrorCode);
+        sendBroadcast(responseIntent);
+    }
+
+    /**
+     * Отправить информацию о том, что произошло исключение при попытки получить данные с сервера.
+     */
+    private void sendRequestWeatherException() {
+        Intent responseIntent = new Intent(ACTION_GET_WEATHER_DATA);
+        responseIntent.putExtra(WeatherUpdateService.EXTRA_SUCCESS, false);
+        responseIntent.putExtra(WeatherUpdateService.EXTRA_EXCEPTION, EXCEPTION_REQUEST_SERVER);
+        sendBroadcast(responseIntent);
+    }
+
+    /**
+     * Отправить информацию о том нет разрешения на получение местаположения.
+     */
+    private void sendSecurityException() {
+        Intent responseIntent = new Intent(ACTION_GET_WEATHER_DATA);
+        responseIntent.putExtra(WeatherUpdateService.EXTRA_SUCCESS, false);
+        responseIntent.putExtra(WeatherUpdateService.EXTRA_EXCEPTION, EXCEPTION_SECURITY);
+        sendBroadcast(responseIntent);
     }
 }

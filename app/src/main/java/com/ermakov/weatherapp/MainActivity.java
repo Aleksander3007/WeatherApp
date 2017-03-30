@@ -15,6 +15,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
@@ -40,7 +41,7 @@ import java.util.TimeZone;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
 
     public static final String TAG = MainActivity.class.getSimpleName();
 
@@ -59,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.toolbar_main) Toolbar mMainToolbar;
     @BindView(R.id.abl_main) AppBarLayout mMainAppBarLayout;
     @BindView(R.id.l_weather_info) View mWeatherInfoLayout;
+    @BindView(R.id.srl_main) SwipeRefreshLayout mMainSwipeRefreshLayout;
 
     private BroadcastReceiver mWeatherReceiver;
     private AlarmManager mWeatherUpdateAlarmManager;
@@ -98,6 +100,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         requestLocationPermissions();
+
+        mMainSwipeRefreshLayout.setOnRefreshListener(this);
     }
 
     @Override
@@ -175,6 +179,19 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onRefresh() {
+        requestWeather();
+    }
+
+    /**
+     * Запрашиваем данные о погоде.
+     */
+    private void requestWeather() {
+        requestLocationPermissions();
+    }
+
+
     /**
      * Запуск будильника обновления данных о погоде через определенные интервалы.
      */
@@ -213,6 +230,7 @@ public class MainActivity extends AppCompatActivity {
         mWeatherReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                mMainSwipeRefreshLayout.setRefreshing(false);
                 if (intent.getExtras() != null) {
                     boolean success = intent.getBooleanExtra(WeatherUpdateService.EXTRA_SUCCESS, false);
                     if (success) {
@@ -222,8 +240,15 @@ public class MainActivity extends AppCompatActivity {
                         Log.d(TAG, "Update Weather");
                     }
                     else {
-                        int httpCode = intent.getExtras().getInt(WeatherUpdateService.EXTRA_HTTP_CODE);
-                        Log.d(TAG, "Error code: " + httpCode);
+                        if (intent.getExtras().containsKey(WeatherUpdateService.EXTRA_EXCEPTION) &&
+                                intent.getExtras().getInt(WeatherUpdateService.EXTRA_EXCEPTION)
+                                        == WeatherUpdateService.EXCEPTION_SECURITY) {
+                            requestLocationPermissions();
+                        }
+                        else {
+                            Toast.makeText(MainActivity.this, R.string.error_network_connection, Toast.LENGTH_SHORT)
+                                    .show();
+                        }
                     }
                 }
             }
@@ -387,4 +412,5 @@ public class MainActivity extends AppCompatActivity {
             mLastWeatherUpdate = SystemClock.elapsedRealtime();
         }
     }
+
 }

@@ -26,6 +26,8 @@
     <string name="north_west">NW</string>
     <string name="north_north_west">NNW</string>
     <string name="msg_fail_permission_location">Для получения погоды необходимо разрешить получение вашего положения</string>
+    <string name="empty_data">-</string>
+    <string name="error_network_connection">Not connect. Verify Network.</string>
 
     <string name="pref_default_temperature">celsius</string>
     <string name="pref_default_wind_speed">m/s</string>
