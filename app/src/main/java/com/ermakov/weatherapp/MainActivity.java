@@ -1,5 +1,6 @@
 package com.ermakov.weatherapp;
 
+import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -7,9 +8,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
@@ -20,6 +25,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.ermakov.weatherapp.activities.SettingsActivity;
 import com.ermakov.weatherapp.models.weather.Weather;
@@ -39,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String TAG = MainActivity.class.getSimpleName();
 
     private static final String KEY_WEATHER_UPDATE = "KEY_WEATHER_UPDATE";
+    private static final int PERMISSION_REQUEST_LOCATION = 1;
 
     // OpenWeatherMap.org просит не обновлять погоду чаще, чем раз в 10 минут.
     public static final int INTERVAL_WEATHER_UPDATE = 10 * 60 * 1000; // в мс.
@@ -90,9 +97,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Стартуем сразу сервис для получения информации о погоде.
-        startService(new Intent(this, WeatherUpdateService.class));
-        mLastWeatherUpdate = SystemClock.elapsedRealtime();
+        requestLocationPermissions();
     }
 
     @Override
@@ -147,6 +152,29 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_REQUEST_LOCATION:
+                // Если запрос был отменен, то grantResults будет пустым.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // Стартуем сразу сервис для получения информации о погоде.
+                    startService(new Intent(this, WeatherUpdateService.class));
+                    mLastWeatherUpdate = SystemClock.elapsedRealtime();
+
+                } else {
+                    Toast.makeText(this,
+                            R.string.msg_fail_permission_location, Toast.LENGTH_SHORT).show();
+                }
+                break;
+            default:
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
     /**
      * Запуск будильника обновления данных о погоде через определенные интервалы.
      */
@@ -188,6 +216,7 @@ public class MainActivity extends AppCompatActivity {
                 if (intent.getExtras() != null) {
                     boolean success = intent.getBooleanExtra(WeatherUpdateService.EXTRA_SUCCESS, false);
                     if (success) {
+                        mLastWeatherUpdate = SystemClock.elapsedRealtime();
                         Weather weather = intent.getParcelableExtra(WeatherUpdateService.EXTRA_WEATHER);
                         updateView(weather);
                         Log.d(TAG, "Update Weather");
@@ -205,11 +234,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateView(Weather weather) {
+        updateTitle(weather.getCityName());
         updateTemperature(weather.getCharacteristics().getTemperature());
         updateWeatherDescription(weather.getDescriptions());
         updateDateTime(weather.getDataCalculation());
         updateSunInfo(weather.getSun());
         updateWindInfo(weather.getWind());
+    }
+
+    private void updateTitle(String title) {
+        getSupportActionBar().setTitle(title);
     }
 
     /**
@@ -333,5 +367,24 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return String.format("%.0f %s", temperature, unitStr);
+    }
+
+    /**
+     * Запрос на разрешение использовать геопозицию.
+     */
+    private void requestLocationPermissions(){
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                ){
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    PERMISSION_REQUEST_LOCATION);
+        }
+        else {
+            // Стартуем сразу сервис для получения информации о погоде.
+            startService(new Intent(this, WeatherUpdateService.class));
+            mLastWeatherUpdate = SystemClock.elapsedRealtime();
+        }
     }
 }

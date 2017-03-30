@@ -19,4 +19,16 @@ public interface WeatherApi {
     Call<Weather> getWeatherByCityName(
             @Query("q") String cityName
     );
+
+    /**
+     * Получить информацию о погоде по географическим координатам.
+     * @param latitude широта.
+     * @param longitude долгота.
+     * @return
+     */
+    @GET("/data/2.5/weather")
+    Call<Weather> getWeatherByGeoCoordinates(
+            @Query("lat") double latitude,
+            @Query("lon") double longitude
+    );
 }
