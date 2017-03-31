@@ -1,22 +1,32 @@
 package com.ermakov.weatherapp;
 
 import android.app.IntentService;
+import android.app.NotificationManager;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.Parcelable;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
+import com.ermakov.weatherapp.activities.SettingsActivity;
 import com.ermakov.weatherapp.models.weather.Weather;
 import com.ermakov.weatherapp.net.WeatherApi;
 import com.ermakov.weatherapp.net.WeatherApiFactory;
+import com.ermakov.weatherapp.utils.WeatherUtils;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
+
+import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -145,6 +155,7 @@ public class WeatherUpdateService extends IntentService
                     public void onResponse(Call<Weather> call, Response<Weather> response) {
                         if (response.isSuccessful()) {
                             sendWeather(response.body());
+                            sendNotification(response.body());
                         }
                         else {
                             sendError(response.code());
@@ -202,5 +213,87 @@ public class WeatherUpdateService extends IntentService
         responseIntent.putExtra(WeatherUpdateService.EXTRA_SUCCESS, false);
         responseIntent.putExtra(WeatherUpdateService.EXTRA_EXCEPTION, EXCEPTION_SECURITY);
         sendBroadcast(responseIntent);
+    }
+
+
+    /**
+     * Отправить уведомление о погоде.
+     * @param weather инфо о погоде.
+     */
+    private void sendNotification(Weather weather) {
+
+        String contentTitle = String.format("%s %s",
+                weather.getCityName(),
+                getTemperatureStr(weather.getCharacteristics().getTemperature())
+        );
+        String contentText = getWeatherDescriptionStr(weather.getDescriptions());
+
+        final NotificationCompat.Builder notifBuilder = new NotificationCompat.Builder(this)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(contentTitle)
+                .setContentText(contentText);
+
+        final NotificationManager notificationManager =
+                (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        /**
+         * Описывает callback-и до и после загрузки изображения с сервера через Picasso.
+         */
+        Target iconTarget = new Target() {
+            @Override
+            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                notifBuilder.setLargeIcon(bitmap);
+                notificationManager.notify(0, notifBuilder.build());
+            }
+
+            @Override
+            public void onBitmapFailed(Drawable errorDrawable) {
+                // Просто не вставляем иконку тогда.
+                notificationManager.notify(0, notifBuilder.build());
+            }
+
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {}
+        };
+
+        // Скачиваем иконку отображающую текущую погоду.
+        String iconId = weather.getDescriptions().get(0).getIconId();
+        Picasso.with(this)
+                .load(WeatherApiFactory.createUrlToIcon(iconId))
+                .into(iconTarget);
+    }
+
+    /**
+     * Формирование температуры в виде строки.
+     */
+    private String getTemperatureStr(float temperature) {
+        String temperatureUnit = PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(SettingsActivity.PREF_TEMPERATURE_UNITS, "");
+
+        String unitStr;
+        if (temperatureUnit.equals(SettingsActivity.NAME_CELSIUS)) {
+            temperature = WeatherUtils.convertToCelsius(temperature);
+            unitStr = getResources().getString(R.string.celsius);
+        }
+        else {
+            unitStr = getResources().getString(R.string.kelvin);
+        }
+
+        return String.format("%.0f %s", temperature, unitStr);
+    }
+
+    /**
+     * Формирование описания погоды в виде строки.
+     * @param descriptions Описания погоды.
+     */
+    private String getWeatherDescriptionStr(List<Weather.Description> descriptions) {
+        StringBuilder totalDescription = new StringBuilder();
+        for (Weather.Description description : descriptions) {
+            totalDescription.append(description.getDescription());
+            totalDescription.append(",");
+        }
+        totalDescription.deleteCharAt(totalDescription.length() - 1);
+
+        return totalDescription.toString();
     }
 }

@@ -366,7 +366,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private void updateWeatherDescription(List<Weather.Description> descriptions) {
         StringBuilder totalDescription = new StringBuilder();
         for (Weather.Description description : descriptions) {
-            totalDescription.append(description.getMain());
+            totalDescription.append(description.getDescription());
             totalDescription.append(",");
         }
         totalDescription.deleteCharAt(totalDescription.length() - 1);

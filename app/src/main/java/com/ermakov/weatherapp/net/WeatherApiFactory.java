@@ -20,6 +20,8 @@ public abstract class WeatherApiFactory {
     public static final String API_KEY = "APPID";
     public static final String API_KEY_VALUE = "46d68e219e534a8169f27c7aa20b02da";
 
+    public static final String URL_ICON = BASE_URL + "img/w/";
+
     private static final int CONNECT_TIMEOUT = 10;
     private static final int WRITE_TIMEOUT = 30;
     private static final int READ_TIMEOUT = 30;
@@ -68,5 +70,14 @@ public abstract class WeatherApiFactory {
         return sRetrofitBuilder
                 .client(sHttpClientBuilder.build())
                 .build();
+    }
+
+    /**
+     * Сформировать путь до иконки погоды.
+     * @param iconId id иконки погоды.
+     * @return путь до иконки погоды.
+     */
+    public static String createUrlToIcon(String iconId) {
+        return URL_ICON + iconId;
     }
 }
