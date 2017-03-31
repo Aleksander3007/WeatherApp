@@ -39,9 +39,9 @@ public class Wind implements Parcelable {
      * Wind direction, degrees (meteorological).
      */
     @SerializedName("deg")
-    private int mDirectionDegrees;
+    private float mDirectionDegrees;
 
-    public Wind(float speed, int directionDegrees) {
+    public Wind(float speed, float directionDegrees) {
         this.mSpeed = speed;
         this.mDirectionDegrees = directionDegrees;
     }
@@ -67,13 +67,13 @@ public class Wind implements Parcelable {
         return mSpeed;
     }
 
-    public int getDirectionDegrees() {
+    public float getDirectionDegrees() {
         return mDirectionDegrees;
     }
 
     @Override
     public String toString() {
-        return String.format("{'speed':%f, 'deg':%d}",
+        return String.format("{'speed':%f, 'deg':%f}",
                 getSpeed(),
                 getDirectionDegrees());
     }
@@ -86,7 +86,7 @@ public class Wind implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeFloat(mSpeed);
-        dest.writeInt(mDirectionDegrees);
+        dest.writeFloat(mDirectionDegrees);
     }
 
     @Override
@@ -105,6 +105,8 @@ public class Wind implements Parcelable {
      * @return направление ветра.
      */
     public Wind.Direction getDirection() {
+
+        mDirectionDegrees = mDirectionDegrees % 360;
 
         final float halfSegment = (90f / 8f);
 

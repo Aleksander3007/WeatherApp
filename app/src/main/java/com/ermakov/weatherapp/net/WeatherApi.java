@@ -1,5 +1,6 @@
 package com.ermakov.weatherapp.net;
 
+import com.ermakov.weatherapp.models.weather.Forecast;
 import com.ermakov.weatherapp.models.weather.Weather;
 
 import retrofit2.Call;
@@ -28,6 +29,17 @@ public interface WeatherApi {
      */
     @GET("/data/2.5/weather")
     Call<Weather> getWeatherByGeoCoordinates(
+            @Query("lat") double latitude,
+            @Query("lon") double longitude
+    );
+
+    /**
+     * Получить прогноз погоды по географическим координатам.
+     * @param latitude широта.
+     * @param longitude долгота.
+     */
+    @GET("/data/2.5/forecast")
+    Call<Forecast> getForecastByGeoCoordinates(
             @Query("lat") double latitude,
             @Query("lon") double longitude
     );

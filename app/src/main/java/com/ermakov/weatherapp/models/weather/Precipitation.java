@@ -13,14 +13,14 @@ public class Precipitation implements Parcelable {
      * Precipitation volume for the last 3 hours.
      */
     @SerializedName("3h")
-    private int mVolume3h;
+    private float mVolume3h;
 
-    public Precipitation(int volume3h) {
+    public Precipitation(float volume3h) {
         this.mVolume3h = volume3h;
     }
 
     protected Precipitation(Parcel in) {
-        mVolume3h = in.readInt();
+        mVolume3h = in.readFloat();
     }
 
     public static final Creator<Precipitation> CREATOR = new Creator<Precipitation>() {
@@ -35,13 +35,13 @@ public class Precipitation implements Parcelable {
         }
     };
 
-    public int getVolume3h() {
+    public float getVolume3h() {
         return mVolume3h;
     }
 
     @Override
     public String toString() {
-        return String.format("'3h':%d", getVolume3h());
+        return String.format("'3h':%f", getVolume3h());
     }
 
     @Override
@@ -51,7 +51,7 @@ public class Precipitation implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeInt(mVolume3h);
+        dest.writeFloat(mVolume3h);
     }
 
     @Override

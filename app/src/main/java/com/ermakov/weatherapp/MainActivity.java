@@ -26,6 +26,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.ermakov.weatherapp.activities.SettingsActivity;
+import com.ermakov.weatherapp.models.weather.Forecast;
 import com.ermakov.weatherapp.models.weather.Weather;
 import com.ermakov.weatherapp.models.weather.Wind;
 import com.ermakov.weatherapp.utils.WeatherUtils;
@@ -199,20 +200,29 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
      * Запрос данных о погоде.
      */
     private void requestWeatherInfo() {
-        Intent intent = new Intent(this, WeatherUpdateService.class);
-        intent.setAction(WeatherUpdateService.ACTION_GET_WEATHER_DATA);
-        startService(intent);
+        mMainSwipeRefreshLayout.setRefreshing(true);
+        startService(createWeatherUpdateIntent());
         mLastWeatherUpdate = SystemClock.elapsedRealtime();
+    }
+
+    /**
+     * Создать Intent для обновления погоды.
+     */
+    private Intent createWeatherUpdateIntent() {
+
+        Intent intent = new Intent(this, WeatherUpdateService.class);
+        intent.putExtra(WeatherUpdateService.EXTRA_REQUEST_FORECAST, true);
+        intent.setAction(WeatherUpdateService.ACTION_GET_WEATHER_DATA);
+
+        return intent;
     }
 
     /**
      * Запуск будильника обновления данных о погоде через определенные интервалы.
      */
     private void startWeatherUpdateAlarm() {
-        Intent weatherUpdateIntent = new Intent(this, WeatherUpdateService.class);
-        weatherUpdateIntent.setAction(WeatherUpdateService.ACTION_GET_WEATHER_DATA);
         mWeatherUpdatePendingIntent
-                = PendingIntent.getService(this, 0, weatherUpdateIntent, 0);
+                = PendingIntent.getService(this, 0, createWeatherUpdateIntent(), 0);
         // Стартуем через INTERVAL_WEATHER_UPDATE от последнего обновления.
         long firstRunInterval = INTERVAL_WEATHER_UPDATE - (SystemClock.elapsedRealtime() - mLastWeatherUpdate);
         Log.d(TAG, "update in " + String.valueOf(firstRunInterval));
@@ -284,8 +294,16 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     if (success) {
                         mLastWeatherUpdate = SystemClock.elapsedRealtime();
                         Weather weather = intent.getParcelableExtra(WeatherUpdateService.EXTRA_WEATHER);
-                        updateView(weather);
-                        Log.d(TAG, "Update Weather");
+                        Forecast forecast = intent.getParcelableExtra(WeatherUpdateService.EXTRA_FORECAST);
+
+                        Log.d(TAG, "onReceive");
+
+                        if (weather != null) updateView(weather);
+                        if (forecast != null) {
+                            Log.d(TAG, forecast.toString());
+                        }
+
+                        Log.d(TAG, "Weather is updated.");
                     }
                     else {
                         if (intent.getExtras().containsKey(WeatherUpdateService.EXTRA_EXCEPTION) &&

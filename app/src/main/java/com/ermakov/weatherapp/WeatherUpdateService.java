@@ -14,6 +14,7 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.ermakov.weatherapp.activities.SettingsActivity;
+import com.ermakov.weatherapp.models.weather.Forecast;
 import com.ermakov.weatherapp.models.weather.Weather;
 import com.ermakov.weatherapp.net.WeatherApi;
 import com.ermakov.weatherapp.net.WeatherApiFactory;
@@ -46,9 +47,11 @@ public class WeatherUpdateService extends IntentService
     public static final String ACTION_CREATE_NOTIFICATION = "com.ermakov.weatherapp.ACTION_CREATE_NOTIFICATION";
 
     public static final String EXTRA_WEATHER = "EXTRA_WEATHER";
+    public static final String EXTRA_FORECAST = "EXTRA_FORECAST";
     public static final String EXTRA_SUCCESS = "EXTRA_SUCCESS";
     public static final String EXTRA_HTTP_CODE = "EXTRA_HTTP_CODE";
     public static final String EXTRA_EXCEPTION = "EXTRA_EXCEPTION";
+    public static final String EXTRA_REQUEST_FORECAST = "EXTRA_FORECAST";
 
     public static final int EXCEPTION_REQUEST_SERVER = 1;
     public static final int EXCEPTION_SECURITY = 2;
@@ -62,6 +65,7 @@ public class WeatherUpdateService extends IntentService
     private LocationRequest mLocationRequest;
 
     private String mCurrentAction;
+    private boolean mRequestForecast;
 
     /**
      * Для объявления в манифесте Service требуется default-конструктор без параметров.
@@ -106,6 +110,7 @@ public class WeatherUpdateService extends IntentService
             mCurrentAction = null;
             if (intent != null && intent.getAction() != null) {
                 mCurrentAction = intent.getAction();
+                mRequestForecast = intent.getBooleanExtra(EXTRA_REQUEST_FORECAST, false);
                 mGoogleApiClient.connect();
             }
         } catch (Exception ex) {
@@ -154,11 +159,34 @@ public class WeatherUpdateService extends IntentService
         double latitude = location.getLatitude();
         double longitude = location.getLongitude();
         Log.d(TAG, String.format("Location via Google API: {long, lat} = {%f, %f}", longitude, latitude));
-        requestWeather(latitude, longitude);
+        
+        WeatherApi weatherApi = WeatherApiFactory.createWeatherApiService();
+        requestWeather(weatherApi, latitude, longitude);
+        if (mRequestForecast) requestForecast(weatherApi, latitude, longitude);
     }
 
-    private void requestWeather(double latitude, double longitude) {
-        WeatherApi weatherApi = WeatherApiFactory.createWeatherApiService();
+    private void requestForecast(WeatherApi weatherApi, double latitude, double longitude) {
+        weatherApi.getForecastByGeoCoordinates(latitude, longitude).enqueue(new Callback<Forecast>() {
+            @Override
+            public void onResponse(Call<Forecast> call, Response<Forecast> response) {
+                if (response.isSuccessful()) {
+                    sendForecast(response.body());
+                }
+                else {
+                    sendError(response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Forecast> call, Throwable t) {
+                t.printStackTrace();
+                sendRequestToServerException();
+            }
+        });
+    }
+
+    private void requestWeather(WeatherApi weatherApi, double latitude, double longitude) {
+        
         weatherApi.getWeatherByGeoCoordinates(latitude, longitude).enqueue(new Callback<Weather>() {
                     @Override
                     public void onResponse(Call<Weather> call, Response<Weather> response) {
@@ -179,7 +207,7 @@ public class WeatherUpdateService extends IntentService
 
                     @Override
                     public void onFailure(Call<Weather> call, Throwable t) {
-                        sendRequestWeatherException();
+                        sendRequestToServerException();
                         t.printStackTrace();
                     }
                 });
@@ -199,6 +227,16 @@ public class WeatherUpdateService extends IntentService
         sendBroadcast(responseIntent);
     }
 
+    private void sendForecast(Forecast forecast) {
+
+        Log.d(TAG, forecast.toString());
+
+        Intent responseIntent = new Intent(ACTION_GET_WEATHER_DATA);
+        responseIntent.putExtra(WeatherUpdateService.EXTRA_SUCCESS, true);
+        responseIntent.putExtra(WeatherUpdateService.EXTRA_FORECAST, forecast);
+        sendBroadcast(responseIntent);
+    }
+
     /**
      * Отправить информацию об ошики.
      * @param httpErrorCode код ошибки.
@@ -213,7 +251,7 @@ public class WeatherUpdateService extends IntentService
     /**
      * Отправить информацию о том, что произошло исключение при попытки получить данные с сервера.
      */
-    private void sendRequestWeatherException() {
+    private void sendRequestToServerException() {
         Intent responseIntent = new Intent(ACTION_GET_WEATHER_DATA);
         responseIntent.putExtra(WeatherUpdateService.EXTRA_SUCCESS, false);
         responseIntent.putExtra(WeatherUpdateService.EXTRA_EXCEPTION, EXCEPTION_REQUEST_SERVER);

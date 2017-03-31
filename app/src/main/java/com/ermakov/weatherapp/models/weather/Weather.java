@@ -39,7 +39,6 @@ public class Weather implements Parcelable {
     @SerializedName("sys")
     private Sun mSun;
 
-    // TODO: Первый раз запрашивать по координатам, или по имени, а второй раз из БД узнавать City ID.
     @SerializedName("id")
     private int mCityId;
 
@@ -112,8 +111,12 @@ public class Weather implements Parcelable {
     @Override
     public String toString() {
         StringBuilder weatherString = new StringBuilder("");
-        weatherString.append(getCityCoord().toString());
-        weatherString.append("\n");
+
+        if (getCityCoord() != null) {
+            weatherString.append(getCityCoord().toString());
+            weatherString.append("\n");
+        }
+
 
         weatherString.append("[");
         for (Weather.Description description : getDescriptions()) {
@@ -123,35 +126,31 @@ public class Weather implements Parcelable {
         weatherString.append("\n");
 
         weatherString.append("'main':");
-        weatherString.append(getCharacteristics().toString());
+        if (getCharacteristics() != null) weatherString.append(getCharacteristics().toString());
         weatherString.append("\n");
 
         weatherString.append("'wind':");
-        weatherString.append(getWind().toString());
+        if (getWind() != null) weatherString.append(getWind().toString());
         weatherString.append("\n");
 
         weatherString.append("'clouds':");
-        weatherString.append(getClouds().toString());
+        if (getClouds() != null) weatherString.append(getClouds().toString());
         weatherString.append("\n");
 
-        if (getRain() != null) {
-            weatherString.append("'rain':");
-            weatherString.append(getRain().toString());
-            weatherString.append("\n");
-        }
+        weatherString.append("'rain':");
+        if (getRain() != null) weatherString.append(getRain().toString());
+        weatherString.append("\n");
 
-        if (getSnow() != null) {
-            weatherString.append("'snow':");
-            weatherString.append(getRain().toString());
-            weatherString.append("\n");
-        }
+        weatherString.append("'snow':");
+        if (getSnow() != null) weatherString.append(getSnow().toString());
+        weatherString.append("\n");
 
         weatherString.append("'dt':");
         weatherString.append(getDataCalculation());
         weatherString.append("\n");
 
         weatherString.append("'sys':");
-        weatherString.append(getSun().toString());
+        if (getSun() != null) weatherString.append(getSun().toString());
         weatherString.append("\n");
 
         weatherString.append("'id':");
@@ -368,10 +367,10 @@ public class Weather implements Parcelable {
         private float mTemperature;
 
         @SerializedName("pressure")
-        private int mPressure;
+        private float mPressure;
 
         @SerializedName("humidity")
-        private int mHumidity;
+        private float mHumidity;
 
         @SerializedName("temp_min")
         private float mTemperatureMin;
@@ -380,21 +379,21 @@ public class Weather implements Parcelable {
         private float mTemperatureMax;
 
         @SerializedName("sea_level")
-        private int mPressureSeaLevel;
+        private float mPressureSeaLevel;
 
         @SerializedName("grnd_level")
-        private int mPressureGroundLevel;
+        private float mPressureGroundLevel;
 
         public MainCharacteristics() {}
 
         protected MainCharacteristics(Parcel in) {
             setTemperature(in.readFloat());
-            setPressure(in.readInt());
-            setHumidity(in.readInt());
+            setPressure(in.readFloat());
+            setHumidity(in.readFloat());
             setTemperatureMin(in.readFloat());
             setTemperatureMax(in.readFloat());
-            setPressureSeaLevel(in.readInt());
-            setPressureGroundLevel(in.readInt());
+            setPressureSeaLevel(in.readFloat());
+            setPressureGroundLevel(in.readFloat());
         }
 
         public static final Creator<MainCharacteristics> CREATOR = new Creator<MainCharacteristics>() {
@@ -411,7 +410,7 @@ public class Weather implements Parcelable {
 
         @Override
         public String toString() {
-            return String.format("{'temp':%f, 'pressure':%d, 'humidity':%d}",
+            return String.format("{'temp':%f, 'pressure':%f, 'humidity':%f}",
                     getTemperature(),
                     getPressure(),
                     getHumidity());
@@ -427,14 +426,14 @@ public class Weather implements Parcelable {
         /**
          * Atmospheric pressure (on the sea level, if there is no sea_level or grnd_level data), hPa.
          */
-        public int getPressure() {
+        public float getPressure() {
             return mPressure;
         }
 
         /**
          * Humidity, %.
          */
-        public int getHumidity() {
+        public float getHumidity() {
             return mHumidity;
         }
 
@@ -446,23 +445,23 @@ public class Weather implements Parcelable {
         @Override
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeFloat(getTemperature());
-            dest.writeInt(getPressure());
-            dest.writeInt(getHumidity());
+            dest.writeFloat(getPressure());
+            dest.writeFloat(getHumidity());
             dest.writeFloat(getTemperatureMin());
             dest.writeFloat(getTemperatureMax());
-            dest.writeInt(getPressureSeaLevel());
-            dest.writeInt(getPressureGroundLevel());
+            dest.writeFloat(getPressureSeaLevel());
+            dest.writeFloat(getPressureGroundLevel());
         }
 
         public void setTemperature(float temperature) {
             mTemperature = temperature;
         }
 
-        public void setPressure(int pressure) {
+        public void setPressure(float pressure) {
             mPressure = pressure;
         }
 
-        public void setHumidity(int humidity) {
+        public void setHumidity(float humidity) {
             mHumidity = humidity;
         }
 
@@ -495,22 +494,22 @@ public class Weather implements Parcelable {
         /**
          * Atmospheric pressure on the sea level, hPa.
          */
-        public int getPressureSeaLevel() {
+        public float getPressureSeaLevel() {
             return mPressureSeaLevel;
         }
 
-        public void setPressureSeaLevel(int pressureSeaLevel) {
+        public void setPressureSeaLevel(float pressureSeaLevel) {
             mPressureSeaLevel = pressureSeaLevel;
         }
 
         /**
          * Atmospheric pressure on the ground level, hPa.
          */
-        public int getPressureGroundLevel() {
+        public float getPressureGroundLevel() {
             return mPressureGroundLevel;
         }
 
-        public void setPressureGroundLevel(int pressureGroundLevel) {
+        public void setPressureGroundLevel(float pressureGroundLevel) {
             mPressureGroundLevel = pressureGroundLevel;
         }
     }
