@@ -7,7 +7,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
@@ -21,10 +20,8 @@ import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -48,8 +45,10 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private static final String KEY_WEATHER_UPDATE = "KEY_WEATHER_UPDATE";
     private static final int PERMISSION_REQUEST_LOCATION = 1;
 
-    // OpenWeatherMap.org просит не обновлять погоду чаще, чем раз в 10 минут.
-    public static final int INTERVAL_WEATHER_UPDATE = 10 * 60 * 1000; // в мс.
+    // OpenWeatherMap.org просит не обновлять погоду чаще, чем раз в 10 минут, в мс.
+    public static final int INTERVAL_WEATHER_UPDATE = 10 * 60 * 1000;
+    /** Интервал отправки уведомлений о погоде. */
+    public static final int INTERVAL_WEATHER_NOTIF = 180 * 60 * 1000; // каждые 3 часа.
 
     @BindView(R.id.tv_date_time) TextView mDateTimeTextView;
     @BindView(R.id.tv_description) TextView mDescriptionTextView;
@@ -63,8 +62,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     @BindView(R.id.srl_main) SwipeRefreshLayout mMainSwipeRefreshLayout;
 
     private BroadcastReceiver mWeatherReceiver;
-    private AlarmManager mWeatherUpdateAlarmManager;
+    private AlarmManager mWeatherAlarmManager;
     private PendingIntent mWeatherUpdatePendingIntent;
+    private PendingIntent mWeatherNotifPendingIntent;
 
     /** Время последнего обновления инфо о погоде, мс. */
     private long mLastWeatherUpdate = 0;
@@ -102,12 +102,17 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         requestLocationPermissions();
 
         mMainSwipeRefreshLayout.setOnRefreshListener(this);
+
+        mWeatherAlarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        initWeatherNotifPendingIntent();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         Log.d(TAG, "current time " + String.valueOf(SystemClock.elapsedRealtime()));
+        // Когда приложение работает, уведомления о погоде будут лишними.
+        cancelWeatherNotificationAlarm();
         registerWeatherUpdateReceiver();
         startWeatherUpdateAlarm();
     }
@@ -117,7 +122,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         super.onStop();
         cancelWeatherUpdateAlarm();
         unregisterReceiver(mWeatherReceiver);
-
+        startWeatherNotificationAlarm();
     }
 
     @Override
@@ -166,8 +171,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
                     // Стартуем сразу сервис для получения информации о погоде.
-                    startService(new Intent(this, WeatherUpdateService.class));
-                    mLastWeatherUpdate = SystemClock.elapsedRealtime();
+                    requestWeatherInfo();
 
                 } else {
                     Toast.makeText(this,
@@ -191,33 +195,77 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         requestLocationPermissions();
     }
 
+    /**
+     * Запрос данных о погоде.
+     */
+    private void requestWeatherInfo() {
+        Intent intent = new Intent(this, WeatherUpdateService.class);
+        intent.setAction(WeatherUpdateService.ACTION_GET_WEATHER_DATA);
+        startService(intent);
+        mLastWeatherUpdate = SystemClock.elapsedRealtime();
+    }
 
     /**
      * Запуск будильника обновления данных о погоде через определенные интервалы.
      */
     private void startWeatherUpdateAlarm() {
         Intent weatherUpdateIntent = new Intent(this, WeatherUpdateService.class);
+        weatherUpdateIntent.setAction(WeatherUpdateService.ACTION_GET_WEATHER_DATA);
         mWeatherUpdatePendingIntent
                 = PendingIntent.getService(this, 0, weatherUpdateIntent, 0);
-        mWeatherUpdateAlarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
         // Стартуем через INTERVAL_WEATHER_UPDATE от последнего обновления.
         long firstRunInterval = INTERVAL_WEATHER_UPDATE - (SystemClock.elapsedRealtime() - mLastWeatherUpdate);
         Log.d(TAG, "update in " + String.valueOf(firstRunInterval));
-        mWeatherUpdateAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
+        mWeatherAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
                 SystemClock.elapsedRealtime() + firstRunInterval,
                 INTERVAL_WEATHER_UPDATE,
                 mWeatherUpdatePendingIntent);
     }
 
     /**
-     * Отмена будильника данных о погоде.
+     * Отмена будильника получения данных о погоде.
      */
     private void cancelWeatherUpdateAlarm() {
-        if (mWeatherUpdateAlarmManager != null) {
-            mWeatherUpdateAlarmManager.cancel(mWeatherUpdatePendingIntent);
+        Log.d(TAG, "cancel weather update");
+        if (mWeatherAlarmManager != null) {
+            mWeatherAlarmManager.cancel(mWeatherUpdatePendingIntent);
         }
     }
 
+    /**
+     * Запуск будильника отправки уведомлений о погоде через определенные интервалы.
+     */
+    private void startWeatherNotificationAlarm() {
+        Log.d(TAG, "start notif");
+        mWeatherAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + INTERVAL_WEATHER_NOTIF,
+                INTERVAL_WEATHER_NOTIF,
+                mWeatherNotifPendingIntent);
+    }
+
+    /**
+     * Отмена будильника отправки уведомлений о погоде.
+     */
+    private void cancelWeatherNotificationAlarm() {
+        Log.d(TAG, "cancel notif");
+        if (mWeatherAlarmManager != null) {
+            mWeatherAlarmManager.cancel(mWeatherNotifPendingIntent);
+        }
+    }
+
+    /**
+     * Инициализация PendingIntent для отправки запроса на уведомление о погоде.
+     */
+    private void initWeatherNotifPendingIntent() {
+        Intent weatherUpdateIntent = new Intent(this, WeatherUpdateService.class);
+        weatherUpdateIntent.setAction(WeatherUpdateService.ACTION_CREATE_NOTIFICATION);
+        mWeatherNotifPendingIntent
+                = PendingIntent.getService(this, 0, weatherUpdateIntent, 0);
+    }
+
+    /**
+     * Открыть окно с настройками.
+     */
     private void openSettingsActivity() {
         Intent settingsIntent = new Intent(this, SettingsActivity.class);
         startActivity(settingsIntent);
@@ -408,8 +456,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         }
         else {
             // Стартуем сразу сервис для получения информации о погоде.
-            startService(new Intent(this, WeatherUpdateService.class));
-            mLastWeatherUpdate = SystemClock.elapsedRealtime();
+            requestWeatherInfo();
         }
     }
 

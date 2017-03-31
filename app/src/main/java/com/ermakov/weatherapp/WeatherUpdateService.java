@@ -43,6 +43,7 @@ public class WeatherUpdateService extends IntentService
     public static final String TAG = WeatherUpdateService.class.getSimpleName();
 
     public static final String ACTION_GET_WEATHER_DATA = "com.ermakov.weatherapp.ACTION_GET_WEATHER_DATA";
+    public static final String ACTION_CREATE_NOTIFICATION = "com.ermakov.weatherapp.ACTION_CREATE_NOTIFICATION";
 
     public static final String EXTRA_WEATHER = "EXTRA_WEATHER";
     public static final String EXTRA_SUCCESS = "EXTRA_SUCCESS";
@@ -52,11 +53,15 @@ public class WeatherUpdateService extends IntentService
     public static final int EXCEPTION_REQUEST_SERVER = 1;
     public static final int EXCEPTION_SECURITY = 2;
 
+    public static final int NOTIFICATION_ID = 1;
+
     /** Время ожидания получения геопозиции. */
     private static final int TIMEOUT_LOCATION_REQUEST = 60 * 1000;
 
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
+
+    private String mCurrentAction;
 
     /**
      * Для объявления в манифесте Service требуется default-конструктор без параметров.
@@ -98,7 +103,11 @@ public class WeatherUpdateService extends IntentService
     @Override
     protected void onHandleIntent(Intent intent) {
         try {
-            mGoogleApiClient.connect();
+            mCurrentAction = null;
+            if (intent != null && intent.getAction() != null) {
+                mCurrentAction = intent.getAction();
+                mGoogleApiClient.connect();
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -154,8 +163,14 @@ public class WeatherUpdateService extends IntentService
                     @Override
                     public void onResponse(Call<Weather> call, Response<Weather> response) {
                         if (response.isSuccessful()) {
-                            sendWeather(response.body());
-                            sendNotification(response.body());
+                            switch (mCurrentAction) {
+                                case ACTION_GET_WEATHER_DATA:
+                                    sendWeather(response.body());
+                                    break;
+                                case ACTION_CREATE_NOTIFICATION:
+                                    sendNotification(response.body());
+                                    break;
+                            }
                         }
                         else {
                             sendError(response.code());
@@ -243,13 +258,13 @@ public class WeatherUpdateService extends IntentService
             @Override
             public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
                 notifBuilder.setLargeIcon(bitmap);
-                notificationManager.notify(0, notifBuilder.build());
+                notificationManager.notify(NOTIFICATION_ID, notifBuilder.build());
             }
 
             @Override
             public void onBitmapFailed(Drawable errorDrawable) {
                 // Просто не вставляем иконку тогда.
-                notificationManager.notify(0, notifBuilder.build());
+                notificationManager.notify(NOTIFICATION_ID, notifBuilder.build());
             }
 
             @Override
