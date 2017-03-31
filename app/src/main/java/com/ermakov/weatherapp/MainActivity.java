@@ -17,6 +17,8 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -26,12 +28,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.ermakov.weatherapp.activities.SettingsActivity;
+import com.ermakov.weatherapp.adapters.ForecastAdapter;
 import com.ermakov.weatherapp.models.weather.Forecast;
 import com.ermakov.weatherapp.models.weather.Weather;
 import com.ermakov.weatherapp.models.weather.Wind;
 import com.ermakov.weatherapp.utils.WeatherUtils;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
@@ -61,11 +65,14 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     @BindView(R.id.abl_main) AppBarLayout mMainAppBarLayout;
     @BindView(R.id.l_weather_info) View mWeatherInfoLayout;
     @BindView(R.id.srl_main) SwipeRefreshLayout mMainSwipeRefreshLayout;
+    @BindView(R.id.rv_forecast) RecyclerView mForecastRecyclerView;
 
     private BroadcastReceiver mWeatherReceiver;
     private AlarmManager mWeatherAlarmManager;
     private PendingIntent mWeatherUpdatePendingIntent;
     private PendingIntent mWeatherNotifPendingIntent;
+
+    private List<Weather> mForecastList = new ArrayList<>();
 
     /** Время последнего обновления инфо о погоде, мс. */
     private long mLastWeatherUpdate = 0;
@@ -84,6 +91,10 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         // Установка всех настроек приложение в default-значения во время первого запуска приложения.
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+
+        ForecastAdapter forecastAdapter = new ForecastAdapter(mForecastList);
+        mForecastRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mForecastRecyclerView.setAdapter(forecastAdapter);
 
         /**
          * Добавляем анимацию для AppBarLayout.
@@ -300,7 +311,11 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
                         if (weather != null) updateView(weather);
                         if (forecast != null) {
-                            Log.d(TAG, forecast.toString());
+                            Log.d(TAG, "forecast != null");
+                            Log.d(TAG, "getWeatherList.size = " + forecast.getWeatherList().size());
+                            mForecastList.clear();
+                            mForecastList.addAll(forecast.getWeatherList());
+                            mForecastRecyclerView.getAdapter().notifyDataSetChanged();
                         }
 
                         Log.d(TAG, "Weather is updated.");
