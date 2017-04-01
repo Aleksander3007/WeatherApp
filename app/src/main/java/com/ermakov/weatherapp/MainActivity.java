@@ -36,9 +36,11 @@ import com.ermakov.weatherapp.utils.WeatherUtils;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.TimeZone;
+import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -92,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         // Установка всех настроек приложение в default-значения во время первого запуска приложения.
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 
-        ForecastAdapter forecastAdapter = new ForecastAdapter(mForecastList);
+        ForecastAdapter forecastAdapter = new ForecastAdapter(this, mForecastList);
         mForecastRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mForecastRecyclerView.setAdapter(forecastAdapter);
 
@@ -311,10 +313,12 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
                         if (weather != null) updateView(weather);
                         if (forecast != null) {
+                            // Формируем прогноз в необходимый нам вид.
+                            List<Weather> formatForecast = formatForecast(forecast.getWeatherList());
                             Log.d(TAG, "forecast != null");
                             Log.d(TAG, "getWeatherList.size = " + forecast.getWeatherList().size());
                             mForecastList.clear();
-                            mForecastList.addAll(forecast.getWeatherList());
+                            mForecastList.addAll(formatForecast);
                             mForecastRecyclerView.getAdapter().notifyDataSetChanged();
                         }
 
@@ -339,6 +343,88 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         registerReceiver(mWeatherReceiver, intentFilter);
     }
 
+    /**
+     * Привести прогноз погоды в необходимый формат для отображения.
+     */
+    private List<Weather> formatForecast(List<Weather> weatherList)
+    {
+        if (weatherList == null || weatherList.size() == 0) return null;
+
+        // Определяем текущий день месяца.
+        int today = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
+
+        // Группируем прогноз погоды по дням.
+        Map<Integer, List<Weather>> daysForecast = groupForecastByDays(weatherList);
+
+        // Формируем в необходимом формате прогноз.
+        List<Weather> formatForecast = new ArrayList<>();
+        for (Integer day : daysForecast.keySet()) {
+            if (day == today) {
+                formatForecast.addAll(daysForecast.get(day));
+            }
+            else {
+                formatForecast.add(createForecastForDay(daysForecast.get(day)));
+            }
+        }
+
+        return formatForecast;
+    }
+
+    /**
+     * Сформировать прогноз погоды на день по данным почасового прогноза этого дня.
+     * @param hoursForecast почасовой прогноз определенного дня.
+     * @return прогноз погоды на день.
+     */
+    private Weather createForecastForDay(List<Weather> hoursForecast)
+    {
+        int dateCalcMin = hoursForecast.get(0).getDataCalculation();
+        float minTemperature = hoursForecast.get(0).getCharacteristics().getTemperatureMin();
+        float maxTemperature = hoursForecast.get(0).getCharacteristics().getTemperatureMax();
+        for (Weather hourWeather : hoursForecast) {
+            if (hourWeather.getCharacteristics().getTemperatureMin() <  minTemperature) {
+                minTemperature = hourWeather.getCharacteristics().getTemperatureMin();
+            }
+            if (hourWeather.getCharacteristics().getTemperatureMax() > maxTemperature) {
+                maxTemperature = hourWeather.getCharacteristics().getTemperatureMax();
+            }
+            if (hourWeather.getDataCalculation() < dateCalcMin) {
+                dateCalcMin = hourWeather.getDataCalculation();
+            }
+        }
+
+        // TODO: На самом деле необходимо все поля сформировать верно.
+        Weather dayWeather = new Weather();
+
+        dayWeather.setDataCalculation(dateCalcMin);
+
+        Weather.MainCharacteristics  weatherCharacteristics = new Weather.MainCharacteristics();
+        weatherCharacteristics.setTemperatureMin(minTemperature);
+        weatherCharacteristics.setTemperatureMax(maxTemperature);
+        dayWeather.setCharacteristics(weatherCharacteristics);
+
+        return dayWeather;
+    }
+
+    private Map<Integer, List<Weather>> groupForecastByDays(List<Weather> weatherList) {
+
+        Calendar calendar = Calendar.getInstance();
+
+        /** Подневной прогноз погоды. */
+        Map<Integer, List<Weather>> daysForecast = new LinkedHashMap<>();
+        // Группируем прогноз погоды по дням.
+        for (Weather weather : weatherList) {
+            Date weatherDate = WeatherUtils.convertToDate(weather.getDataCalculation());
+            int currentDay = WeatherUtils.getDayOfMoth(calendar, weatherDate);
+
+            if (!daysForecast.containsKey(currentDay)) {
+                List<Weather> hoursForecast = new ArrayList<>();
+                daysForecast.put(currentDay, hoursForecast);
+            }
+            daysForecast.get(currentDay).add(weather);
+        }
+
+        return daysForecast;
+    }
     private void updateView(Weather weather) {
         updateTitle(weather.getCityName());
         updateTemperature(weather.getCharacteristics().getTemperature());
@@ -419,16 +505,20 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
     private void updateSunInfo(Weather.Sun sun) {
+
         Date sunriseTime = WeatherUtils.convertToDate(sun.getSunrise());
         Date sunsetTime = WeatherUtils.convertToDate(sun.getSunset());
+
         mSunriseTextView.setText(getSunPositionStr(sunriseTime));
         mSunsetTextView.setText(getSunPositionStr(sunsetTime));
     }
 
     private String getSunPositionStr(Date date) {
+
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm");
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT+0"));
+        simpleDateFormat.setTimeZone(WeatherUtils.getLocalTimeZone());
         String formattedDate = simpleDateFormat.format(date);
+
         return formattedDate;
     }
 
@@ -438,9 +528,11 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
     private String getDateTimeStr(Date date) {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT+0"));
+
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd MMMM HH:mm");
+        simpleDateFormat.setTimeZone(WeatherUtils.getLocalTimeZone());
         String formattedDate = simpleDateFormat.format(date);
+
         return formattedDate;
     }
 
@@ -458,21 +550,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         String temperatureUnit = PreferenceManager.getDefaultSharedPreferences(this)
                 .getString(SettingsActivity.PREF_TEMPERATURE_UNITS, "");
 
-        mTemperatureTextView.setText(getTemperatureStr(temperature, temperatureUnit));
-    }
-
-    private String getTemperatureStr(float temperature, String temperatureUnit) {
-
-        String unitStr;
-        if (temperatureUnit.equals(SettingsActivity.NAME_CELSIUS)) {
-            temperature = WeatherUtils.convertToCelsius(temperature);
-            unitStr = getResources().getString(R.string.celsius);
-        }
-        else {
-            unitStr = getResources().getString(R.string.kelvin);
-        }
-
-        return String.format("%.0f %s", temperature, unitStr);
+        mTemperatureTextView.setText(
+                WeatherUtils.getTemperatureStr(this, temperature, temperatureUnit));
     }
 
     /**

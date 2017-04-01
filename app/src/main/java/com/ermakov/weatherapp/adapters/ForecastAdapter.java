@@ -1,5 +1,7 @@
 package com.ermakov.weatherapp.adapters;
 
+import android.content.Context;
+import android.preference.PreferenceManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -8,8 +10,14 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.ermakov.weatherapp.R;
+import com.ermakov.weatherapp.activities.SettingsActivity;
 import com.ermakov.weatherapp.models.weather.Weather;
+import com.ermakov.weatherapp.utils.WeatherUtils;
 
+import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import butterknife.BindView;
@@ -21,9 +29,13 @@ import butterknife.ButterKnife;
 
 public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.ViewHolder> {
 
-    private List<Weather> mForecastList;
+    public static final String TAG = ForecastAdapter.class.getSimpleName();
 
-    public ForecastAdapter(List<Weather> forecastList) {
+    private List<Weather> mForecastList;
+    private WeakReference<Context> mContext;
+
+    public ForecastAdapter(Context context, List<Weather> forecastList) {
+        this.mContext = new WeakReference<>(context);
         this.mForecastList = forecastList;
     }
 
@@ -36,13 +48,26 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
+
+        if (mContext.get() == null) {
+            Log.d(TAG, "mContext.get() == null");
+            return;
+        }
+
         Weather weather = mForecastList.get(position);
 
-        holder.mDateTimeTextView.setText(String.valueOf(weather.getDataCalculation()));
-        holder.mTempMinTextView.setText(String.valueOf(weather.getCharacteristics().getTemperatureMin()));
-        holder.mTempMaxTextView.setText(String.valueOf(weather.getCharacteristics().getTemperatureMax()));
+        Date cityDate = WeatherUtils.convertToDate(weather.getDataCalculation());
 
-        Log.d("ForecastAdapter", "pos = " + position);
+        String temperatureUnit = PreferenceManager.getDefaultSharedPreferences(mContext.get())
+                .getString(SettingsActivity.PREF_TEMPERATURE_UNITS, "");
+        String temperatureMinStr = WeatherUtils.getTemperatureStr(mContext.get(),
+                weather.getCharacteristics().getTemperatureMin(), temperatureUnit);
+        String temperatureMaxStr = WeatherUtils.getTemperatureStr(mContext.get(),
+                weather.getCharacteristics().getTemperatureMax(), temperatureUnit);
+
+        holder.mDateTimeTextView.setText(getDateTimeStr(cityDate));
+        holder.mTempMinTextView.setText(temperatureMinStr);
+        holder.mTempMaxTextView.setText(temperatureMaxStr);
     }
 
     @Override
@@ -60,5 +85,25 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.ViewHo
             super(itemView);
             ButterKnife.bind(this, itemView);
         }
+    }
+
+    private String getDateTimeStr(Date date) {
+
+        int day = WeatherUtils.getDayOfMoth(Calendar.getInstance(), date);
+        int today = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
+
+        SimpleDateFormat simpleDateFormat;
+        if (day == today) {
+            simpleDateFormat = new SimpleDateFormat(
+                    String.format("'%s,' HH:mm", mContext.get().getString(R.string.today)));
+        }
+        else {
+            simpleDateFormat = new SimpleDateFormat("dd MMMM");
+        }
+
+        simpleDateFormat.setTimeZone(WeatherUtils.getLocalTimeZone());
+        String formattedDate = simpleDateFormat.format(date);
+
+        return formattedDate;
     }
 }

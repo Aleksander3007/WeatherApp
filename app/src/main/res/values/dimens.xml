@@ -4,6 +4,9 @@
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="content_weather_info_horizontal_padding">8dp</dimen>
     <dimen name="content_weather_info_vertical_padding">16dp</dimen>
-    <dimen name="sun_info_margin_top">16dp</dimen>
     <dimen name="temperature_main_margin_bottom">16dp</dimen>
+    <dimen name="sun_info_margin_top">16dp</dimen>
+    <dimen name="temperature_width">50dp</dimen>
+    <dimen name="content_temperatures_width">116dp</dimen>
+    <dimen name="content_forecast_padding">16dp</dimen>
 </resources>
