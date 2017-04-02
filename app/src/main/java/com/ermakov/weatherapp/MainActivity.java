@@ -38,9 +38,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -380,6 +382,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         int dateCalcMin = hoursForecast.get(0).getDataCalculation();
         float minTemperature = hoursForecast.get(0).getCharacteristics().getTemperatureMin();
         float maxTemperature = hoursForecast.get(0).getCharacteristics().getTemperatureMax();
+        Map<String, Integer> icons = new HashMap<>();
         for (Weather hourWeather : hoursForecast) {
             if (hourWeather.getCharacteristics().getTemperatureMin() <  minTemperature) {
                 minTemperature = hourWeather.getCharacteristics().getTemperatureMin();
@@ -389,6 +392,22 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             }
             if (hourWeather.getDataCalculation() < dateCalcMin) {
                 dateCalcMin = hourWeather.getDataCalculation();
+            }
+
+            // Считаем количество каждого типа iconId.
+            for (Weather.Description description : hourWeather.getDescriptions()) {
+                String iconId =  description.getIconId();
+                Integer frequency = icons.get(iconId);
+                icons.put(iconId, (frequency == null) ? 1 : frequency);
+            }
+        }
+
+        // Ищем самою распространенную иконку.
+        Map.Entry<String, Integer> widelySpreadIcon = null;
+        for (Map.Entry<String, Integer> icon : icons.entrySet()) {
+            if (widelySpreadIcon == null ||
+                    icon.getValue().compareTo(widelySpreadIcon.getValue()) > 0) {
+                widelySpreadIcon = icon;
             }
         }
 
@@ -401,6 +420,11 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         weatherCharacteristics.setTemperatureMin(minTemperature);
         weatherCharacteristics.setTemperatureMax(maxTemperature);
         dayWeather.setCharacteristics(weatherCharacteristics);
+
+        Weather.Description weatherDescription = new Weather.Description();
+        weatherDescription.setIconId(widelySpreadIcon.getKey());
+        dayWeather.setDescriptions(new ArrayList<Weather.Description>());
+        dayWeather.getDescriptions().add(weatherDescription);
 
         return dayWeather;
     }

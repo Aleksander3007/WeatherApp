@@ -7,12 +7,15 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.ermakov.weatherapp.R;
 import com.ermakov.weatherapp.activities.SettingsActivity;
 import com.ermakov.weatherapp.models.weather.Weather;
+import com.ermakov.weatherapp.net.WeatherApiFactory;
 import com.ermakov.weatherapp.utils.WeatherUtils;
+import com.squareup.picasso.Picasso;
 
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
@@ -68,6 +71,14 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.ViewHo
         holder.mDateTimeTextView.setText(getDateTimeStr(cityDate));
         holder.mTempMinTextView.setText(temperatureMinStr);
         holder.mTempMaxTextView.setText(temperatureMaxStr);
+
+        // Скачиваем иконку отображающую текущую погоду.
+        String iconId = weather.getDescriptions().get(0).getIconId();
+        Picasso.with(holder.itemView.getContext())
+                .load(WeatherApiFactory.createUrlToIcon(iconId))
+                .fit()
+                .centerInside()
+                .into(holder.mIconImageView);
     }
 
     @Override
@@ -80,6 +91,7 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.ViewHo
         @BindView(R.id.tv_date_time) TextView mDateTimeTextView;
         @BindView(R.id.tv_temp_min) TextView mTempMinTextView;
         @BindView(R.id.tv_temp_max) TextView mTempMaxTextView;
+        @BindView(R.id.iv_icon) ImageView mIconImageView;
 
         public ViewHolder(View itemView) {
             super(itemView);

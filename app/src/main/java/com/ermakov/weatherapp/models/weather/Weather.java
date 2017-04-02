@@ -5,6 +5,7 @@ import android.os.Parcelable;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -269,6 +270,8 @@ public class Weather implements Parcelable {
         @SerializedName("icon")
         private String mIconId;
 
+        public Description() {}
+
         public Description(int id, String main, String description, String iconId) {
             this.mId = id;
             this.mMain = main;
@@ -321,6 +324,10 @@ public class Weather implements Parcelable {
          */
         public String getIconId() {
             return mIconId;
+        }
+
+        public void setIconId(String iconId) {
+            this.mIconId = iconId;
         }
 
         @Override

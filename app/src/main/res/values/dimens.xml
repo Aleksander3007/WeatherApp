@@ -6,7 +6,8 @@
     <dimen name="content_weather_info_vertical_padding">16dp</dimen>
     <dimen name="temperature_main_margin_bottom">16dp</dimen>
     <dimen name="sun_info_margin_top">16dp</dimen>
-    <dimen name="temperature_width">50dp</dimen>
-    <dimen name="content_temperatures_width">116dp</dimen>
+    <dimen name="temperature_width">80dp</dimen>
+    <dimen name="content_temperatures_width">176dp</dimen>
     <dimen name="content_forecast_padding">16dp</dimen>
+    <dimen name="img_forecast_icon_width">50dp</dimen>
 </resources>
